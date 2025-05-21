@@ -1,0 +1,9 @@
+[package]
+name = "termall"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+egui = "0.31.1"
+eframe = "0.31.1"
+nix = { version= "0.30.1", default-features = false, features= ["term" , "process"] }
