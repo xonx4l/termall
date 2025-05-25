@@ -1,10 +1,9 @@
 use eframe::egui;
-// Removed unused import: use nix::unistd::ForkResult;
 use std::{
     io::Read,
     fs::File,
     ffi::{CStr, CString},
-    os::fd::{OwnedFd, AsRawFd}, // Keep AsRawFd as we use it for OwnedFd -> File conversion
+    os::fd::{OwnedFd, AsRawFd}, 
 };
 
 fn main() {
@@ -12,7 +11,7 @@ fn main() {
         let res = nix::pty::forkpty(None, None).unwrap();
 
         match res {
-            nix::pty::ForkptyResult::Parent { child: _, master } => { // _child to ignore unused variable
+            nix::pty::ForkptyResult::Parent { child: _, master } => { 
                 master
             }
             nix::pty::ForkptyResult::Child => {
@@ -76,18 +75,21 @@ impl eframe::App for Termali {
        egui::CentralPanel::default().show(ctx, |ui| {
         ui.input(|input_state| {
             for event in &input_state.events {
-                let egui::Event::Text(text) = event else {
-                    continue;
+                let text = match event {
+                    egui::Event::Text(text) => text,
+                    egui::Event::Key { key : egui::Key::Enter,  ..} => {
+                        "/n"
+                    }
+                    _ => "",
                 };
 
                 let bytes = text.as_bytes();
                 let mut to_write: &[u8] = bytes;
 
                 while to_write.len() > 0 {
-                    // --- FIX STARTS HERE ---
-                    // Pass the File directly to nix::unistd::write, it implements AsFd.
-                    let written = nix::unistd::write(&self.fd, to_write).unwrap(); // Pass &self.fd (reference)
-                    // --- FIX ENDS HERE ---
+                    
+                    let written = nix::unistd::write(&self.fd, to_write).unwrap(); 
+                    
                     to_write = &to_write[written..];
                 }
             }
