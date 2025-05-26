@@ -8,6 +8,8 @@ use std::{
 
 fn get_char_size(ctx: &egui::Context) -> (f32 , f32) {
     let font_id = ctx.style().text_styles[&egui::TextStyle::Monospace].clone();
+    let spacing = &ctx.style().spacing;
+    println!("item_spacing: {:?}", spacing.item_spacing);
     let (width , height) = ctx.fonts(move |fonts| {
 
         let layout = fonts.layout(
@@ -16,10 +18,17 @@ fn get_char_size(ctx: &egui::Context) -> (f32 , f32) {
             egui::Color32::default(),
             f32::INFINITY);
 
-        (layout.rect.width(), layout.rect.height())    
+        (layout.mesh_bounds.width(), layout.mesh_bounds.height())    
     });
 
     (width , height)
+}
+
+fn character_to_cursor_offset(character_pos: &(usize, usize), character_size: &(f32, f32), content: &[u8]) -> (f32 , f32) {
+    let content_by_lines: Vec<&[u8]> = content.split( |b| *b == b'\n').collect();
+    let x_offset = character_pos.0 as f32 * character_size.0;
+    let y_offset = (character_pos.1 as i64 - num_lines as i64) as f32 * character_size.1;
+    (x_offset, y_offset)
 }
 
 fn main() {
@@ -129,9 +138,26 @@ impl eframe::App for Termali {
                     }
                 }
             });
-            unsafe {
+
+            
+        let response = unsafe {
                 ui.label(std::str::from_utf8_unchecked(&self.buf))
-            }
+            
+        };
+
+        let bottom = response.rect.bottom();
+        let left = response.rect.left() + 3;
+
+        let painter = ui.painter();
+        let character_size =  self.character_size.as_ref().unwrap();
+        let cursor_offset = character_to_cursor_offset(&self.cursor.pos, character_size, &self.buf);
+        painter.rect_filled( egui::Rect::from_min_size(
+            equi::pos2(left + cursor_offset.0, bottom + cursor_offset.1),
+            egui::vec2(character_size.0. character_size.1),
+            ),
+            0.0,
+            egui::Color32::GRAY);
         });
+    
     }
 }
