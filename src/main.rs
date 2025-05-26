@@ -6,6 +6,22 @@ use std::{
     os::fd::OwnedFd, 
 };
 
+fn get_char_size(ctx: &egui::Context) -> (f32 , f32) {
+    let font_id = ctx.style().text_styles[&egui::TextStyle::Monospace].clone();
+    let (width , height) = ctx.fonts(move |fonts| {
+
+        let layout = fonts.layout(
+            "@".to_string(),
+            font_id,
+            egui::Color32::default(),
+            f32::INFINITY);
+
+        (layout.rect.width(), layout.rect.height())    
+    });
+
+    (width , height)
+}
+
 fn main() {
     let fd = unsafe {
         let res = nix::pty::forkpty(None, None).unwrap();
@@ -42,6 +58,7 @@ fn main() {
 struct Termali {
     buf: Vec<u8>,
     cursor_pos: (usize, usize),
+    character_size: Option<(f32, f32)>,
     fd: File,
 }
 
@@ -61,6 +78,7 @@ impl Termali {
             buf: Vec::new(),
             fd: fd.into(), 
             cursor_pos: (0, 0),
+            character_size: None,
         }
     }
 }
@@ -69,6 +87,10 @@ impl Termali {
 
 impl eframe::App for Termali {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if self.character_size.is_none() {
+            self.character_size = Some(get_char_size(ctx));
+              println!("character size: {:?}", self.character_size);
+        }
         let mut buf = vec![0u8; 4096];
         match self.fd.read(&mut buf) {
             Ok(read_size) => {
