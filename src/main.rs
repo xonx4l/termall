@@ -47,7 +47,9 @@ struct Termali {
 
 impl Termali {
     fn new(_cc: &eframe::CreationContext<'_>, fd: OwnedFd) -> Self {
-        
+        _cc.egui_ctx.style_mut(|style| {
+            style.override_text_style = Some(egui::TextStyle::Monospace);
+        });
         let flags = nix::fcntl::fcntl(&fd, nix::fcntl::FcntlArg::F_GETFL).unwrap();
         let mut flags = nix::fcntl::OFlag::from_bits(flags & nix::fcntl::OFlag::O_ACCMODE.bits()).unwrap();
         flags.set(nix::fcntl::OFlag::O_NONBLOCK, true);
@@ -70,7 +72,14 @@ impl eframe::App for Termali {
         let mut buf = vec![0u8; 4096];
         match self.fd.read(&mut buf) {
             Ok(read_size) => {
-                self.buf.extend_from_slice(&buf[0..read_size]);
+                let incoming = &buf[0..read_size];
+                for c in incoming {
+                    match c {
+                        b'\n' => self.cursor_pos = (0, self.cursor_pos.1 + 1),
+                        _ => self.cursor_pos = (self.cursor_pos.0 + 1, self.cursor_pos.1),
+                    }
+                }
+                self.buf.extend_from_slice(incoming);
             }
             Err(e) => {
                 if e.kind() != std::io::ErrorKind::WouldBlock {
