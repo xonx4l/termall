@@ -1,6 +1,8 @@
-# A TERMINAL EMULATOR WRITTEN IN RUST .
+# TERMALL
 
-# TECHSTACK -:
-1. RUST 
-2. NIX STACK
-3. EGUI
+A mini terminal emulator implementation in rust .
+
+TECH STACK -:
+rust
+nix
+egui
